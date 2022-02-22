@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_08afc4f1_bbe9_46f4_8107_6a753f7a72b0_Output_Payload = Array<{  accountId?: Number,   country: String,   city: String,   street: String,   name: String,   state: String,   postal: String,   _?: Any}>
+
