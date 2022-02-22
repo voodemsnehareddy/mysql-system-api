@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:os="http://www.mulesoft.org/schema/mule/os" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="getOIMData" doc:id="08afc4f1-bbe9-46f4-8107-6a753f7a72b0" >
+		<logger level="INFO" doc:name="Start Logger" doc:id="b6eef654-8c60-493f-bd8f-f003eab672a2" message='#["getOIM flow Started"]'/>
+		<os:retrieve doc:name="Last Updated Time" doc:id="009a4d5d-0394-44e3-83df-bd8393a7d2ee" key="lastUpdatedTime" target="lastUpdatedTime">
+			<os:default-value><![CDATA[#["2012-01-01 23:59:59" as String{format : "yyyy-MM-dd hh:mm:ss"}]]]></os:default-value>
+		</os:retrieve>
+		<db:select doc:name="Select Details from Accounts table based on last updated time and present time" doc:id="8ffb436e-8df1-4a36-921a-6da4fbbe54b5" config-ref="Database_Config">
+			<db:sql ><![CDATA[select * from accounts where timestamp > :lastUpdatedTime]]></db:sql>
+			<db:input-parameters ><![CDATA[#[{
+	lastUpdatedTime: vars.lastUpdatedTime
+}]]]></db:input-parameters>
+		</db:select>
+		<os:store doc:name="Present Time" doc:id="05127976-ba7e-437c-a8dc-bf9edc76e25c" key="lastUpdatedTime">
+			<os:value ><![CDATA[#[max(payload.timestamp) as String{format : "yyyy-MM-dd hh:mm:ss"} default vars.lastUpdatedTime]]]></os:value>
+		</os:store>
+		<ee:transform doc:name="Response in Json" doc:id="36edf8f7-8b45-4743-8508-4e4aa48b2924" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="End Logger" doc:id="ee0459c7-8af3-442b-a3c6-691ea76b202c" message='#["getOIM flow Ended"]'/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="9bec5eb4-d298-4429-9cb2-1c0e5354ed60" type="DB:BAD_SQL_SYNTAX, DB:CONNECTIVITY, DB:QUERY_EXECUTION">
+				<set-payload value="#['Server is down, please try again after sometime']" doc:name="Set Payload" doc:id="65f13891-f345-4085-b35f-2f8d25335982" />
+				<logger level="INFO" doc:name="Logger" doc:id="2991e226-3223-4104-aebe-c6e09c37d276" message='#["Exception occured while interacting with server.Try again later." ++ error.description default ""]'/>
+			</on-error-continue>
+		</error-handler>
+	
+</flow>
+</mule>
